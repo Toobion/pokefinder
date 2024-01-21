@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Information Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+
+        h1, h2, h3 {
+            color: #E3350D;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        input {
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #pokemonInfo {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        #typeEffectiveness {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .abilityLink {
+            color: #0066cc;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Pokémon Information Tool</h1>
+    <label for="pokemonName">Enter the English name of a Pokémon (type 'exit' to quit): </label>
+    <input type="text" id="pokemonName">
+    <button onclick="getPokemonInfo()">Get Info</button>
+
+    <div id="pokemonInfo"></div>
+    <div id="typeEffectiveness"></div>
+
+    <script>
+        function getPokemonInfo() {
+            var pokemonName = document.getElementById('pokemonName').value.toLowerCase();
+
+            // Fetch Pokémon data
+            fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonName}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Extract relevant information
+                    var name = data.name;
+                    var types = data.types.map(type => type.type.name);
+                    var abilities = data.abilities.map(ability => ability.ability);
+                    var baseStats = data.stats.map(stat => `${stat.stat.name}: ${stat.base_stat}`);
+                    var immunities = [];
+                    if (types.includes('flying')) immunities.push('Ground moves');
+                    if (types.includes('ghost')) immunities.push('Fighting and Normal moves');
+                    if (types.includes('dark')) immunities.push('Psychic moves');
+                    if (types.includes('normal')) immunities.push('Ghost moves');
+                    if (types.includes('fairy')) immunities.push('Dragon moves');
+
+                    // Display Pokémon information
+                    var pokemonInfo = `
+                        <h2>${name.toUpperCase()}</h2>
+                        <p>Type: ${types.join(', ')}</p>
+                        <p>Abilities: ${abilities.map(ability => `<span class="abilityLink" onclick="openAbilityDescription('${getBulbapediaLink(ability.name)}')">${ability.name}</span>`).join(', ')}</p>
+                        <h3>Base Stats:</h3>
+                        <ul>${baseStats.map(stat => `<li>${stat}</li>`).join('')}</ul>
+                        <h3>Immunities:</h3>
+                        <p>${immunities.join(', ')}</p>
+                    `;
+
+                    document.getElementById('pokemonInfo').innerHTML = pokemonInfo;
+
+                    // Fetch type effectiveness data
+                    fetch(`https://pokeapi.co/api/v2/type/${types[0]}`)
+                        .then(response => response.json())
+                        .then(typeData => {
+                            // Extract type effectiveness information
+                            var doubleDamageFrom = typeData.damage_relations.double_damage_from.map(type => type.name);
+                            var doubleDamageTo = typeData.damage_relations.double_damage_to.map(type => type.name);
+                            var halfDamageFrom = typeData.damage_relations.half_damage_from.map(type => type.name);
+                            var halfDamageTo = typeData.damage_relations.half_damage_to.map(type => type.name);
+
+                            // Display type effectiveness information
+                            var typeEffectiveness = `
+                                <h3>Type Effectiveness:</h3>
+                                <p>Double damage from: ${doubleDamageFrom.join(', ')}</p>
+                                <p>Double damage to: ${doubleDamageTo.join(', ')}</p>
+                                <p>Half damage from: ${halfDamageFrom.join(', ')}</p>
+                                <p>Half damage to: ${halfDamageTo.join(', ')}</p>
+                            `;
+
+                            document.getElementById('typeEffectiveness').innerHTML = typeEffectiveness;
+                        })
+                        .catch(error => console.error('Error fetching type effectiveness:', error));
+                })
+                .catch(error => {
+                    console.error('Error fetching Pokémon data:', error);
+                    document.getElementById('pokemonInfo').innerHTML = '<p>Unable to fetch Pokémon data.</p>';
+                    document.getElementById('typeEffectiveness').innerHTML = ''; // Clear type effectiveness on error
+                });
+        }
+
+        function openAbilityDescription(abilityUrl) {
+            // Open a new tab with the Bulbapedia article for the ability
+            window.open(abilityUrl, '_blank');
+        }
+
+        function getBulbapediaLink(abilityName) {
+            return `https://bulbapedia.bulbagarden.net/wiki/${abilityName}_(Ability)`;
+        }
+    </script>
+
+</body>
+</html>
